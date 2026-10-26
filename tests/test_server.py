@@ -51,8 +51,12 @@ def test_routes_register_without_error():
 
 
 @pytest.mark.asyncio
-async def test_csosa_contract_tool_is_discoverable():
-    """The CSOSA contract-spending tool should be registered and discoverable."""
+async def test_csosa_tools_are_discoverable():
+    """All CSOSA tools should be registered and discoverable via the MCP API."""
     tools = await mcp.list_tools()
     tool_names = {t.name for t in tools}
-    assert "csosa_search_contract_awards" in tool_names
+    assert tool_names == {
+        "csosa_search_contract_awards",
+        "csosa_get_award_details",
+        "csosa_spending_summary",
+    }

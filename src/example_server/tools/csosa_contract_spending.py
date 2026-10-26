@@ -177,7 +177,9 @@ def register(mcp: FastMCP) -> None:
         limits.
 
         Each result includes a `usaspending_url` permalink to the award's
-        page on USAspending.gov so answers can cite their source.
+        page on USAspending.gov so answers can cite their source, and an
+        `award_detail_id` you can pass to csosa_get_award_details for the
+        full contract record (competition, NAICS/PSC, place of performance).
 
         Returns:
             A pagination envelope (JSON) with `items`, `count`, `offset`,
@@ -256,6 +258,7 @@ def register(mcp: FastMCP) -> None:
                 "description": r.get("Description"),
                 "contract_award_type": r.get("Contract Award Type"),
                 "funding_agency": r.get("Funding Agency"),
+                "award_detail_id": r.get("generated_internal_id"),
                 "usaspending_url": (
                     f"https://www.usaspending.gov/award/{r['generated_internal_id']}"
                     if r.get("generated_internal_id")

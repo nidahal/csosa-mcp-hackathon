@@ -11,12 +11,18 @@ To add a tool:
 
 from __future__ import annotations
 
-from example_server.tools import csosa_contract_spending
+from example_server.tools import (
+    csosa_award_details,
+    csosa_contract_spending,
+    csosa_spending_summary,
+)
 
 
 def register_tools(mcp) -> None:
     """Register all tools with the MCP server."""
     csosa_contract_spending.register(mcp)
+    csosa_award_details.register(mcp)
+    csosa_spending_summary.register(mcp)
 
 
 __all__ = ["register_tools"]
