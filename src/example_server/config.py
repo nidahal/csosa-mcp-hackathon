@@ -35,5 +35,10 @@ class Settings(BaseSettings):
     #
     #   example_api_key: str = ""   # ← set EXAMPLE_API_KEY in the environment
 
+    # USAspending.gov is a public API — no key required. The base URL is
+    # still configurable here (not a tool argument) so the outbound origin
+    # stays operator-controlled.
+    usaspending_base_url: str = "https://api.usaspending.gov/api/v2/"
+
 
 settings = Settings()

@@ -388,6 +388,9 @@ dependencies = [
 ]
 
 [package.dev-dependencies]
+agent = [
+    { name = "truststore" },
+]
 dev = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -403,6 +406,7 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
+agent = [{ name = "truststore", specifier = ">=0.9.0" }]
 dev = [
     { name = "pytest", specifier = ">=8.0.0" },
     { name = "pytest-asyncio", specifier = ">=0.23.0" },
