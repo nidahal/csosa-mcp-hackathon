@@ -1,0 +1,42 @@
+<evaluation>
+   <qa_pair>
+      <question>Considering only federal fiscal years 2008 through 2020 (inclusive), how many of those fiscal years had total CSOSA contract obligations exceeding $45,000,000?</question>
+      <answer>4</answer>
+   </qa_pair>
+   <qa_pair>
+      <question>Considering only federal fiscal years 2008 through 2020 (inclusive), which single fiscal year had the highest total CSOSA contract obligations? Answer with the 4-digit fiscal year.</question>
+      <answer>2010</answer>
+   </qa_pair>
+   <qa_pair>
+      <question>Considering only federal fiscal years 2008 through 2020 (inclusive), which recipient received the highest total obligated amount from CSOSA prime contracts? Give the recipient's name exactly as it appears in USAspending.gov records.</question>
+      <answer>IPI GRAMMTECH LTD</answer>
+   </qa_pair>
+   <qa_pair>
+      <question>Considering only federal fiscal years 2008 through 2020 (inclusive), which Product or Service Code category received the highest total CSOSA contract obligations?</question>
+      <answer>SOCIAL- SOCIAL REHABILITATION</answer>
+   </qa_pair>
+   <qa_pair>
+      <question>Find CSOSA's single largest contract award recorded in federal fiscal year 2010 (by award amount). That award was issued as an order under a GSA multiple-award schedule contract (an IDV). What is the PIID of that parent IDV?</question>
+      <answer>GS35F4157D</answer>
+   </qa_pair>
+   <qa_pair>
+      <question>Find CSOSA's single largest contract award recorded in federal fiscal year 2010 (by award amount). In what city and state was the work performed under that award? Answer as "City, State".</question>
+      <answer>Washington, District of Columbia</answer>
+   </qa_pair>
+   <qa_pair>
+      <question>Find CSOSA's single largest contract award recorded in federal fiscal year 2023 (by award amount). How many offers did CSOSA receive before making that award?</question>
+      <answer>6</answer>
+   </qa_pair>
+   <qa_pair>
+      <question>Find CSOSA's single largest contract award recorded in federal fiscal year 2023 (by award amount). What 6-digit NAICS code is associated with that award?</question>
+      <answer>541330</answer>
+   </qa_pair>
+   <qa_pair>
+      <question>CSOSA's single largest contract award recorded in federal fiscal year 2023 (by award amount) was placed as an order under a parent IDV. Among the other orders placed under that same parent IDV by the Federal Communications Commission, which one has the smallest obligated amount? Give its award ID (PIID).</question>
+      <answer>FCC17G0084</answer>
+   </qa_pair>
+   <qa_pair>
+      <question>Among all sub-award (subcontract) records reported under CSOSA prime contracts, which single sub-awardee received the largest sub-award amount? Give the sub-awardee's name exactly as reported.</question>
+      <answer>BUSINESS OPERATIONAL CONCEPTS, LLC.</answer>
+   </qa_pair>
+</evaluation>
