@@ -87,8 +87,13 @@ fi
 
 # --- Sync the repo source to the workspace path -------------------------------
 # `databricks sync` uploads the repo (respecting .gitignore) to SOURCE_CODE_PATH.
+# --full (not the default incremental mode): app.yaml above is staged fresh and
+# removed on every run, which an incremental diff can miss entirely (it did,
+# silently, and the deployed app crashed with ModuleNotFoundError because the
+# runtime fell back to `python main.py` without PYTHONPATH). Full sync is slower
+# but correct, and this repo is small enough that it doesn't matter.
 echo "=== Syncing source to ${SOURCE_CODE_PATH} ==="
-databricks "${PROFILE_ARGS[@]}" sync "${REPO_ROOT}" "${SOURCE_CODE_PATH}"
+databricks "${PROFILE_ARGS[@]}" sync --full "${REPO_ROOT}" "${SOURCE_CODE_PATH}"
 
 # --- Deploy -------------------------------------------------------------------
 echo "=== Deploying app '${APP_NAME}' from ${SOURCE_CODE_PATH} ==="
