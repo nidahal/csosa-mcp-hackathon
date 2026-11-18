@@ -59,4 +59,6 @@ async def test_csosa_tools_are_discoverable():
         "csosa_search_contract_awards",
         "csosa_get_award_details",
         "csosa_spending_summary",
+        "csosa_search_subawards",
+        "csosa_list_idv_child_awards",
     }

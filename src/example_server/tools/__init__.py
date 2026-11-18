@@ -14,7 +14,9 @@ from __future__ import annotations
 from example_server.tools import (
     csosa_award_details,
     csosa_contract_spending,
+    csosa_idv_child_awards,
     csosa_spending_summary,
+    csosa_subawards,
 )
 
 
@@ -23,6 +25,8 @@ def register_tools(mcp) -> None:
     csosa_contract_spending.register(mcp)
     csosa_award_details.register(mcp)
     csosa_spending_summary.register(mcp)
+    csosa_subawards.register(mcp)
+    csosa_idv_child_awards.register(mcp)
 
 
 __all__ = ["register_tools"]

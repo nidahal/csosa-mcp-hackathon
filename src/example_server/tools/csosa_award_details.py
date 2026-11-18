@@ -87,6 +87,10 @@ def register(mcp: FastMCP) -> None:
         industry codes, place and period of performance, the recipient (and
         its parent company, if any), and the parent IDV/schedule contract
         this award was issued under, if applicable.
+
+        If `parent_idv_award_id` is present, pass it to
+        csosa_list_idv_child_awards to see the other orders issued under the
+        same IDV.
         """
         try:
             payload = await _get_json(f"awards/{award_detail_id}/")
@@ -141,6 +145,7 @@ def register(mcp: FastMCP) -> None:
                 ),
             },
             "parent_idv_piid": parent_award.get("piid"),
+            "parent_idv_award_id": parent_award.get("generated_unique_award_id"),
             "usaspending_url": (
                 f"https://www.usaspending.gov/award/{payload['generated_unique_award_id']}"
                 if payload.get("generated_unique_award_id")
