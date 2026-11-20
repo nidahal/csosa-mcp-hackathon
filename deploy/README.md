@@ -42,6 +42,10 @@ See [`databricks/README.md`](databricks/README.md). Deploy as a Databricks App:
 the kit syncs your repo to the workspace and runs `databricks apps deploy`. The
 app is gated by workspace auth, so clients present a bearer token.
 
+A second, independent kit, [`databricks-webapp/README.md`](databricks-webapp/README.md),
+deploys the Streamlit web UI (`webapp/app.py`, a client of the MCP server app
+above) as its own Databricks App.
+
 ## cloud.gov (bonus)
 
 Not a full kit, but the repo root includes a `manifest.yaml` for cloud.gov

@@ -1,0 +1,30 @@
+# Databricks Apps deployment configuration for the CSOSA Spending Assistant
+# (Streamlit web UI). https://docs.databricks.com/aws/en/dev-tools/databricks-apps/app-runtime
+#
+# Deploy with the kit script (which syncs this repo to your workspace and runs
+# `databricks apps deploy`):
+#   bash deploy/databricks-webapp/deploy-databricks-app.sh
+#
+# This is a second, independent Databricks App from the MCP server
+# (deploy/databricks/) — the web UI is a client that calls out to the
+# already-deployed MCP server and a model-serving endpoint; it does not need
+# to run in the same app or share its source path.
+#
+# Databricks automatically injects at runtime:
+#   DATABRICKS_APP_PORT      (defaults to 8000) — Streamlit serves HTTP on this
+#   DATABRICKS_HOST          workspace URL
+#   DATABRICKS_CLIENT_ID     service principal client ID
+#   DATABRICKS_CLIENT_SECRET OAuth secret
+#
+# The bearer token for the MCP server and the MCP server's own URL are not
+# injected — enter DATABRICKS_HOST / DATABRICKS_TOKEN / MCP_SERVER_URL in the
+# app's sidebar after it loads (see webapp/README.md).
+#
+# webapp/app.py resolves the repo root from its own file path, so no
+# PYTHONPATH wiring is needed to import agent/core.py.
+command:
+  [
+    "/bin/sh",
+    "-c",
+    "streamlit run /app/python/source_code/webapp/app.py --server.port=$DATABRICKS_APP_PORT --server.address=0.0.0.0 --server.headless=true --server.enableXsrfProtection=false --server.enableCORS=false --browser.gatherUsageStats=false",
+  ]
