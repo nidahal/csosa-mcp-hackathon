@@ -35,6 +35,12 @@ dev = [
 agent = [
     "truststore>=0.9.0",
 ]
+# For webapp/app.py (a Streamlit client reusing agent/core.py).
+webapp = [
+    "truststore>=0.9.0",
+    "streamlit>=1.38.0",
+    "plotly>=5.24.0",
+]
 
 [tool.uv]
 # This workspace's network terminates TLS through a corporate proxy; trust
