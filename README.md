@@ -1,8 +1,25 @@
-# GSA MCP Hackathon — Server Template
+# CSOSA Spending Assistant — GSA MCP Hackathon
 
 A ready-to-run starter for building a [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server in Python, plus deployment kits for **IBM Cloud (watsonx Orchestrate)** and **Databricks**.
 
 Built with [FastMCP](https://github.com/jlowin/fastmcp) and [uv](https://docs.astral.sh/uv/). If you have never built an MCP server before, start with **[QUICKSTART.md](QUICKSTART.md)**.
+
+---
+
+## Why this project
+
+Built for the GSA MCP Hackathon to show what an MCP-enabled AI assistant can do with public federal data: instead of manually digging through USAspending.gov's search UI, a user asks a plain-language question — "What are CSOSA's largest security contracts?" — and gets back a narrated answer, a chart, and links back to the underlying award records. This instance is scoped to **CSOSA** (the Court Services and Offender Supervision Agency), but the same pattern — one MCP server, one agent loop, one web UI — applies to any agency's public spending data.
+
+Every tool here is **read-only**: it retrieves, aggregates, and explains live USAspending.gov data. Nothing in this project writes back to USAspending.gov or any other external system.
+
+### Live deployment (Databricks Apps)
+
+| App | URL | What it is |
+|---|---|---|
+| CSOSA Spending Assistant (web UI) | https://csosa-spending-webapp-7474654188777746.aws.databricksapps.com | Ask a question in plain language, see the answer, chart, and sources |
+| CSOSA MCP server | https://csosa-mcp-server-7474654188777746.aws.databricksapps.com/mcp | The underlying MCP tool server the assistant (and any MCP client) calls |
+
+Both apps sit behind Databricks workspace SSO, so they're reachable by workspace members rather than the open internet — see [deploy/databricks/README.md](deploy/databricks/README.md) and [deploy/databricks-webapp/README.md](deploy/databricks-webapp/README.md) for how to deploy your own.
 
 ---
 
