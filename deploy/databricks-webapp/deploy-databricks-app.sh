@@ -24,6 +24,14 @@
 # Idempotent: creates the app on first run, redeploys on subsequent runs.
 set -euo pipefail
 
+# On Git Bash / MSYS (Windows), argv paths starting with "/" get silently
+# rewritten to a local Windows path before reaching the (native, non-MSYS)
+# databricks.exe — e.g. "/Workspace/Users/..." becomes "C:/Program
+# Files/Git/Workspace/Users/...". Disable that conversion unconditionally;
+# it's a no-op on Linux/macOS.
+export MSYS_NO_PATHCONV=1
+export MSYS2_ARG_CONV_EXCL="*"
+
 # --- Validate config ----------------------------------------------------------
 : "${APP_NAME:?set APP_NAME (source deploy/databricks-webapp/.env)}"
 : "${SOURCE_CODE_PATH:?set SOURCE_CODE_PATH (absolute /Workspace path)}"
@@ -39,6 +47,18 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+
+# `databricks workspace import/export --file` opens the path with Windows'
+# own file APIs, which don't understand a posix-style "/c/Users/..." path the
+# way `sync`'s directory argument does — convert explicitly on Git Bash/MSYS
+# (a no-op passthrough on Linux/macOS, where cygpath doesn't exist).
+_native_path() {
+  if command -v cygpath >/dev/null 2>&1; then
+    cygpath -w "$1"
+  else
+    printf '%s' "$1"
+  fi
+}
 
 echo "=== Target ==="
 echo "  app name:         ${APP_NAME}"
@@ -73,10 +93,16 @@ else
   echo "       Another deploy kit may be mid-run; remove it and retry." >&2
   exit 1
 fi
+# Anchored under REPO_ROOT, not /tmp: databricks.exe only reliably resolves
+# the same posix-style path shape already proven to work for `sync`'s own
+# local-source argument below — a bare /tmp/... path lands somewhere else
+# entirely (Windows interprets a leading "/" as the current drive's root).
+VERIFY_TMP="${REPO_ROOT}/.deploy-verify-tmp"
 cleanup() {
   if [[ "${CLEANUP_APP_YAML}" == "1" ]]; then
     rm -f "${STAGED_APP_YAML}"
   fi
+  rm -f "${VERIFY_TMP}"
 }
 trap cleanup EXIT
 
@@ -95,22 +121,42 @@ fi
 # reaches the workspace — see deploy/databricks/deploy-databricks-app.sh for
 # why incremental sync silently missed this.
 #
-# Observed in practice: `sync --full` can print "Initial Sync Complete" and
-# exit 0 while the workspace folder ends up empty (a race between the CLI
-# reporting done and the upload actually landing) — the next `apps deploy`
-# then fails with "no files found". Verify app.yaml actually landed and retry
-# once before giving up, rather than failing confusingly.
+# Observed in practice, repeatedly, in different ways: `sync --full` can print
+# "Initial Sync Complete" and exit 0 while an upload hasn't actually landed —
+# an empty workspace folder, a stale webapp/app.py left over from the
+# *previous* deploy, or (even after retrying `sync` itself up to 3x) the same
+# file still not matching. `apps deploy` then serves outdated or broken code
+# with no error at all. Retrying `sync` doesn't reliably fix it — whatever
+# local change-detection it uses isn't trustworthy for this. So treat `sync`
+# as best-effort bulk transfer only, then force-overwrite this app's actual
+# Python entry points with a direct, unambiguous `workspace import`, and
+# verify each one byte-for-byte before deploying.
 echo "=== Syncing source to ${SOURCE_CODE_PATH} ==="
-for attempt in 1 2; do
-  databricks "${PROFILE_ARGS[@]}" sync --full "${REPO_ROOT}" "${SOURCE_CODE_PATH}"
-  if databricks "${PROFILE_ARGS[@]}" workspace get-status "${SOURCE_CODE_PATH}/app.yaml" >/dev/null 2>&1; then
-    break
-  fi
-  if [[ "${attempt}" == "2" ]]; then
-    echo "FATAL: ${SOURCE_CODE_PATH}/app.yaml still missing after 2 sync attempts." >&2
+databricks "${PROFILE_ARGS[@]}" sync --full "${REPO_ROOT}" "${SOURCE_CODE_PATH}"
+
+CRITICAL_FILES=(
+  "webapp/app.py"
+  "webapp/charts.py"
+  "agent/core.py"
+  "app.yaml"
+)
+echo "=== Force-uploading and verifying critical files ==="
+for rel_path in "${CRITICAL_FILES[@]}"; do
+  databricks "${PROFILE_ARGS[@]}" workspace import \
+    "${SOURCE_CODE_PATH}/${rel_path}" \
+    --file "$(_native_path "${REPO_ROOT}/${rel_path}")" \
+    --format RAW \
+    --overwrite >/dev/null
+  rm -f "${VERIFY_TMP}"
+  if ! databricks "${PROFILE_ARGS[@]}" workspace export \
+      "${SOURCE_CODE_PATH}/${rel_path}" --file "$(_native_path "${VERIFY_TMP}")" >/dev/null 2>&1 \
+      || ! diff -q "${VERIFY_TMP}" "${REPO_ROOT}/${rel_path}" >/dev/null 2>&1; then
+    rm -f "${VERIFY_TMP}"
+    echo "FATAL: ${SOURCE_CODE_PATH}/${rel_path} doesn't match local even after a direct import." >&2
     exit 1
   fi
-  echo "  app.yaml not visible in the synced workspace yet — retrying sync..."
+  rm -f "${VERIFY_TMP}"
+  echo "  ${rel_path} verified"
 done
 
 # --- Deploy -------------------------------------------------------------------
