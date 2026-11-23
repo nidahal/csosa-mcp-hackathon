@@ -147,9 +147,7 @@ def register(mcp: FastMCP) -> None:
                 ]
             else:
                 category = (
-                    "recipient"
-                    if group_by is SpendingGroupBy.RECIPIENT
-                    else "psc"
+                    "recipient" if group_by is SpendingGroupBy.RECIPIENT else "psc"
                 )
                 payload = await _post_json(
                     f"search/spending_by_category/{category}/",

@@ -67,9 +67,7 @@ async def _post_json(path: str, body: dict[str, Any]) -> Any:
                     detail = json.loads(content).get("detail", "Bad request.")
                     raise UpstreamServiceError(detail)
                 if response.status_code == 404:
-                    raise UpstreamServiceError(
-                        "No IDV found for that idv_award_id."
-                    )
+                    raise UpstreamServiceError("No IDV found for that idv_award_id.")
                 response.raise_for_status()
                 content = bytearray()
                 async for chunk in response.aiter_bytes():

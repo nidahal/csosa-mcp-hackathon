@@ -79,9 +79,7 @@ def _patch_clients(
     llm_client: _FakeLlmClient,
 ) -> None:
     monkeypatch.setattr(core, "Client", lambda transport: mcp_client)
-    monkeypatch.setattr(
-        core.httpx, "AsyncClient", lambda **kwargs: llm_client
-    )
+    monkeypatch.setattr(core.httpx, "AsyncClient", lambda **kwargs: llm_client)
 
 
 def test_mcp_tool_to_openai_schema() -> None:

@@ -90,12 +90,15 @@ async def run_agent(
 
     tool_calls: list[ToolCallRecord] = []
 
-    async with Client(transport) as mcp_client, httpx.AsyncClient(
-        base_url=host.rstrip("/"),
-        headers={"Authorization": f"Bearer {token}"},
-        timeout=60.0,
-        verify=ssl_context,
-    ) as llm_client:
+    async with (
+        Client(transport) as mcp_client,
+        httpx.AsyncClient(
+            base_url=host.rstrip("/"),
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=60.0,
+            verify=ssl_context,
+        ) as llm_client,
+    ):
         tools = await mcp_client.list_tools()
         tool_schemas = [_mcp_tool_to_openai_schema(t) for t in tools]
         tool_names = [t.name for t in tools]

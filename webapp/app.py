@@ -127,9 +127,7 @@ def _sidebar_connection() -> tuple[str, str, str, str]:
         mcp_url = st.text_input(
             "MCP_SERVER_URL", value=os.environ.get("MCP_SERVER_URL", "")
         )
-        model = st.text_input(
-            "MODEL", value=os.environ.get("MODEL", DEFAULT_MODEL)
-        )
+        model = st.text_input("MODEL", value=os.environ.get("MODEL", DEFAULT_MODEL))
     return host, token, mcp_url, model
 
 

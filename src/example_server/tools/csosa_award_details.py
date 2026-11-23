@@ -140,9 +140,7 @@ def register(mcp: FastMCP) -> None:
                 "number_of_offers_received": contract_data.get(
                     "number_of_offers_received"
                 ),
-                "solicitation_procedures": contract_data.get(
-                    "solicitation_procedures"
-                ),
+                "solicitation_procedures": contract_data.get("solicitation_procedures"),
             },
             "parent_idv_piid": parent_award.get("piid"),
             "parent_idv_award_id": parent_award.get("generated_unique_award_id"),
