@@ -1,7 +1,7 @@
 # CSOSA MCP Server — Gold Question Evaluation Report
 
 Model: `databricks-claude-sonnet-4-5`  |  Questions: 10  |  Accuracy: 10/10 (100%)
-Average tool calls per question: 1.6  |  Average rounds per question: 2.6
+Average tool calls per question: 1.6  |  Average rounds per question: 2.6  |  Average tokens per question: 11,648
 
 ## Interpretation
 
@@ -52,6 +52,23 @@ superseded) scored 7/10, but all 3 failures traced back to an error in how the
   details → [IDV children]), with no backtracking or redundant calls observed
   in any trace.
 
+- **Token usage (added on a later re-run):** ~113.6k tokens went to the agent
+  answering all 10 questions (~11.4k average, mostly prompt tokens from the
+  tool-calling loop's system prompt + accumulating tool results) and ~2.9k to
+  the LLM judge grading them — judging costs roughly 2.5% of what answering
+  does, as expected for a short one-shot grading prompt versus a multi-round
+  tool-calling loop.
+
+## Token usage across all questions
+
+Counts come from the `usage` field each serving-endpoint response returns; 0 for any endpoint that doesn't report it. "Agent" is answering the question (all tool-calling rounds); "Judge" is the separate LLM-as-judge grading call.
+
+| | Prompt tokens | Completion tokens | Total |
+|---|---|---|---|
+| Agent | 110,572 | 3,054 | 113,626 |
+| Judge | 2,457 | 401 | 2,858 |
+| **Total** | **113,029** | **3,455** | **116,484** |
+
 ## Tool usage across all questions
 
 | Tool | Calls |
@@ -92,6 +109,8 @@ superseded) scored 7/10, but all 3 failures traced back to an error in how the
 
 **Rounds:** 2  |  **Tool calls:** 1
 
+**Tokens:** agent 8,416 (prompt 7,977 / completion 439)  |  judge 503  |  **total 8,919**
+
 <details><summary>Tool call trace</summary>
 
 1. `csosa_spending_summary({"group_by": "fiscal_year", "start_date": "2007-10-01", "end_date": "2020-09-30"})`
@@ -104,13 +123,15 @@ superseded) scored 7/10, but all 3 failures traced back to an error in how the
 
 **Expected:** 2010
 
-**Actual:** Based on the data, fiscal year **2010** had the highest total CSOSA contract obligations at $65,756,123.35.
+**Actual:** Based on the data, fiscal year **2010** had the highest total CSOSA contract obligations with $65,756,123.35.
 
-2010
+**2010**
 
 **Judge reason:** The agent correctly identified 2010 as the fiscal year with the highest total CSOSA contract obligations.
 
 **Rounds:** 2  |  **Tool calls:** 1
+
+**Tokens:** agent 8,137 (prompt 7,966 / completion 171)  |  judge 233  |  **total 8,370**
 
 <details><summary>Tool call trace</summary>
 
@@ -126,11 +147,11 @@ superseded) scored 7/10, but all 3 failures traced back to an error in how the
 
 **Actual:** **IPI GRAMMTECH LTD**
 
-This recipient received the highest total obligated amount ($35,145,691) from CSOSA prime contracts during federal fiscal years 2008-2020.
-
-**Judge reason:** The agent correctly identified "IPI GRAMMTECH LTD" as the recipient with the highest total obligated amount from CSOSA prime contracts during the specified time period.
+**Judge reason:** The agent's answer "IPI GRAMMTECH LTD" matches the expected answer exactly, despite being formatted in bold.
 
 **Rounds:** 2  |  **Tool calls:** 1
+
+**Tokens:** agent 7,998 (prompt 7,837 / completion 161)  |  judge 230  |  **total 8,228**
 
 <details><summary>Tool call trace</summary>
 
@@ -144,11 +165,13 @@ This recipient received the highest total obligated amount ($35,145,691) from CS
 
 **Expected:** SOCIAL- SOCIAL REHABILITATION
 
-**Actual:** Based on the data from fiscal years 2008 through 2020, **SOCIAL- SOCIAL REHABILITATION** received the highest total CSOSA contract obligations at **$68,103,288.60**.
+**Actual:** **SOCIAL- SOCIAL REHABILITATION** received the highest total CSOSA contract obligations during federal fiscal years 2008-2020, with **$68,103,288.60** in total obligations.
 
 **Judge reason:** The agent correctly identified "SOCIAL- SOCIAL REHABILITATION" as the Product or Service Code category with the highest total CSOSA contract obligations for fiscal years 2008-2020.
 
 **Rounds:** 2  |  **Tool calls:** 1
+
+**Tokens:** agent 8,202 (prompt 7,997 / completion 205)  |  judge 255  |  **total 8,457**
 
 <details><summary>Tool call trace</summary>
 
@@ -162,15 +185,17 @@ This recipient received the highest total obligated amount ($35,145,691) from CS
 
 **Expected:** GS35F4157D
 
-**Actual:** Perfect! I found the information you need.
+**Actual:** Perfect! I found the information you're looking for.
 
-CSOSA's largest contract award in fiscal year 2010 was for $35,145,691 to IPI GRAMMTECH LTD for "DATA QUALITY SOFTWARE" (award ID: CSOSA10004565). This was indeed a delivery order issued under a GSA multiple-award schedule contract.
+The PIID of the parent IDV is **GS35F4157D**.
 
-**The PIID of the parent IDV is: GS35F4157D**
+This was CSOSA's largest contract award in FY 2010 - a $35,145,691 delivery order for data quality software to IPI GRAMMTECH LTD, issued under GSA multiple-award schedule contract GS35F4157D.
 
 **Judge reason:** The agent correctly identified the parent IDV PIID as GS35F4157D, matching the expected answer exactly.
 
 **Rounds:** 3  |  **Tool calls:** 2
+
+**Tokens:** agent 13,089 (prompt 12,712 / completion 377)  |  judge 311  |  **total 13,400**
 
 <details><summary>Tool call trace</summary>
 
@@ -187,9 +212,11 @@ CSOSA's largest contract award in fiscal year 2010 was for $35,145,691 to IPI GR
 
 **Actual:** Washington, District of Columbia
 
-**Judge reason:** The agent's answer exactly matches the expected answer for the city and state where the work was performed.
+**Judge reason:** The agent's answer exactly matches the expected answer of "Washington, District of Columbia".
 
 **Rounds:** 3  |  **Tool calls:** 2
+
+**Tokens:** agent 12,905 (prompt 12,634 / completion 271)  |  judge 201  |  **total 13,106**
 
 <details><summary>Tool call trace</summary>
 
@@ -204,13 +231,13 @@ CSOSA's largest contract award in fiscal year 2010 was for $35,145,691 to IPI GR
 
 **Expected:** 6
 
-**Actual:** CSOSA's largest contract award in fiscal year 2023 was **$18,146,959.36** to Omniplex World Services Corporation for security officer services. 
+**Actual:** CSOSA's largest contract award in fiscal year 2023 was **$18,146,959.36** to Omniplex World Services Corporation for security officer services. CSOSA received **6 offers** before making that award.
 
-**CSOSA received 6 offers** before making that award.
-
-**Judge reason:** The agent correctly identified that CSOSA received 6 offers for the largest contract award in fiscal year 2023.
+**Judge reason:** The agent correctly identified that CSOSA received 6 offers for their largest contract award in fiscal year 2023.
 
 **Rounds:** 3  |  **Tool calls:** 2
+
+**Tokens:** agent 12,987 (prompt 12,670 / completion 317)  |  judge 246  |  **total 13,233**
 
 <details><summary>Tool call trace</summary>
 
@@ -225,13 +252,13 @@ CSOSA's largest contract award in fiscal year 2010 was for $35,145,691 to IPI GR
 
 **Expected:** 541330
 
-**Actual:** The NAICS code associated with CSOSA's largest contract award in fiscal year 2023 is **541330**.
-
-This was an $18.1 million award to Omniplex World Services Corporation for security officer services.
+**Actual:** The NAICS code associated with CSOSA's largest contract award in fiscal year 2023 is **541330** (Engineering Services). This award was for $18,146,959.36 to Omniplex World Services Corporation for security officer services.
 
 **Judge reason:** The agent correctly identified the NAICS code as 541330, which matches the expected answer.
 
 **Rounds:** 3  |  **Tool calls:** 2
+
+**Tokens:** agent 12,994 (prompt 12,674 / completion 320)  |  judge 248  |  **total 13,242**
 
 <details><summary>Tool call trace</summary>
 
@@ -246,19 +273,21 @@ This was an $18.1 million award to Omniplex World Services Corporation for secur
 
 **Expected:** FCC17G0084
 
-**Actual:** Perfect! I can see all the child awards under this parent IDV. Looking at the results sorted by obligated amount (ascending), I can identify the Federal Communications Commission orders:
+**Actual:** Perfect! I can see all the child awards under this IDV. The results are already sorted by obligated amount in ascending order. Looking at the Federal Communications Commission orders:
 
-1. **FCC17G0084** - $6,216,055.24 (smallest FCC order)
+1. **FCC17G0084** - $6,216,055.24
 2. **273FCC19F0005** - $8,194,033.55
 3. **FCC11G0009** - $20,798,207.38
 
 The FCC order with the smallest obligated amount is **FCC17G0084** with $6,216,055.24.
 
-**Answer: FCC17G0084**
+**FCC17G0084**
 
 **Judge reason:** The agent correctly identified FCC17G0084 as the FCC order with the smallest obligated amount under the parent IDV.
 
 **Rounds:** 4  |  **Tool calls:** 3
+
+**Tokens:** agent 20,673 (prompt 20,059 / completion 614)  |  judge 368  |  **total 21,041**
 
 <details><summary>Tool call trace</summary>
 
@@ -276,12 +305,16 @@ The FCC order with the smallest obligated amount is **FCC17G0084** with $6,216,0
 
 **Actual:** **BUSINESS OPERATIONAL CONCEPTS, LLC.**
 
-**Judge reason:** The agent's answer matches the expected sub-awardee name exactly, with only minor formatting differences (bold text) that don't affect the factual content.
+This sub-awardee received the largest single sub-award amount of $454,209.40 under a CSOSA prime contract.
+
+**Judge reason:** The agent correctly identified "BUSINESS OPERATIONAL CONCEPTS, LLC." as the sub-awardee with the largest sub-award amount under CSOSA prime contracts.
 
 **Rounds:** 2  |  **Tool calls:** 1
 
+**Tokens:** agent 8,225 (prompt 8,046 / completion 179)  |  judge 263  |  **total 8,488**
+
 <details><summary>Tool call trace</summary>
 
-1. `csosa_search_subawards({"pagination": {"limit": 1, "offset": 0}, "sort_by": "Sub-Award Amount", "sort_order": "desc"})`
+1. `csosa_search_subawards({"sort_by": "Sub-Award Amount", "sort_order": "desc", "pagination": {"limit": 1, "offset": 0}})`
 
 </details>

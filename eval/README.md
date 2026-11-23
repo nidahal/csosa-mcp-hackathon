@@ -1,7 +1,35 @@
-# Evaluations (stub)
+# Evaluations
 
-This template does **not** include an evaluation harness — but building one is
-the single best way to know whether your MCP server actually works well.
+Building an evaluation harness is the single best way to know whether your
+MCP server actually works well.
+
+## This project's harness
+
+`run_evaluation.py` + `gold_questions.xml` is the working harness for the
+CSOSA server: it runs each gold question through the same tool-calling loop
+as `agent/csosa_agent.py` against the **deployed** server, grades the final
+answer with an LLM judge, and writes `eval_report.md` with per-question
+results, tool-usage counts, and token usage (prompt/completion tokens per
+question and in aggregate, from the serving endpoint's own `usage` field).
+
+```bash
+uv sync --group agent
+export DATABRICKS_HOST=https://<workspace>.cloud.databricks.com
+export DATABRICKS_TOKEN=<token from `databricks auth token --profile <p>`>
+export MCP_SERVER_URL=https://<app>.databricksapps.com/mcp
+uv run python eval/run_evaluation.py
+```
+
+`databricks/` is a second, heavier harness that runs inside a Databricks
+notebook against an MLflow-scored, Playground-exported agent — see
+`databricks/README.md` if you want MLflow GenAI judges (Correctness, Safety,
+RelevanceToQuery) instead of this one's lighter LLM-judge.
+
+## Building your own from scratch
+
+If you're starting a fresh server from this template (not the CSOSA one
+above), it ships without an eval harness — building one is still the single
+best way to know whether your MCP server actually works well.
 
 ## Why evaluate?
 

@@ -75,6 +75,19 @@ class QuestionResult:
     rounds: int = 0
     verdict: str = "UNKNOWN"
     reason: str = ""
+    agent_prompt_tokens: int = 0
+    agent_completion_tokens: int = 0
+    judge_prompt_tokens: int = 0
+    judge_completion_tokens: int = 0
+
+    @property
+    def total_tokens(self) -> int:
+        return (
+            self.agent_prompt_tokens
+            + self.agent_completion_tokens
+            + self.judge_prompt_tokens
+            + self.judge_completion_tokens
+        )
 
 
 def _require_env(name: str) -> str:
@@ -105,9 +118,17 @@ def load_gold_questions() -> list[tuple[str, str]]:
     return pairs
 
 
+def _extract_usage(payload: dict) -> tuple[int, int]:
+    """Pull (prompt_tokens, completion_tokens) from an OpenAI-compatible
+    chat-completions response. Missing/absent usage counts as zero rather
+    than failing the eval — not every serving endpoint reports it."""
+    usage = payload.get("usage") or {}
+    return usage.get("prompt_tokens", 0), usage.get("completion_tokens", 0)
+
+
 async def ask_judge(
     llm_client: httpx.AsyncClient, model: str, question: str, expected: str, actual: str
-) -> tuple[str, str]:
+) -> tuple[str, str, int, int]:
     prompt = JUDGE_PROMPT_TEMPLATE.format(
         question=question, expected=expected, actual=actual
     )
@@ -119,7 +140,9 @@ async def ask_judge(
         },
     )
     response.raise_for_status()
-    content = response.json()["choices"][0]["message"].get("content", "")
+    payload = response.json()
+    prompt_tokens, completion_tokens = _extract_usage(payload)
+    content = payload["choices"][0]["message"].get("content", "")
     verdict = "INCORRECT"
     reason = content.strip()
     for line in content.splitlines():
@@ -133,7 +156,7 @@ async def ask_judge(
             )
         elif line.upper().startswith("REASON:"):
             reason = line.split(":", 1)[1].strip()
-    return verdict, reason
+    return verdict, reason, prompt_tokens, completion_tokens
 
 
 async def run_question(
@@ -160,7 +183,11 @@ async def run_question(
             },
         )
         response.raise_for_status()
-        choice = response.json()["choices"][0]["message"]
+        payload = response.json()
+        prompt_tokens, completion_tokens = _extract_usage(payload)
+        result.agent_prompt_tokens += prompt_tokens
+        result.agent_completion_tokens += completion_tokens
+        choice = payload["choices"][0]["message"]
         tool_calls = choice.get("tool_calls") or []
         result.rounds = round_num
 
@@ -224,11 +251,16 @@ async def main() -> None:
             result = await run_question(
                 mcp_client, llm_client, model, tool_schemas, question, expected
             )
-            verdict, reason = await ask_judge(
-                llm_client, model, question, expected, result.actual
-            )
+            (
+                verdict,
+                reason,
+                judge_prompt_tokens,
+                judge_completion_tokens,
+            ) = await ask_judge(llm_client, model, question, expected, result.actual)
             result.verdict = verdict
             result.reason = reason
+            result.judge_prompt_tokens = judge_prompt_tokens
+            result.judge_completion_tokens = judge_completion_tokens
             results.append(result)
             print(f"  -> actual: {result.actual!r}")
             print(f"  -> verdict: {verdict} ({reason})")
@@ -238,6 +270,10 @@ async def main() -> None:
 
 
 def write_report(results: list[QuestionResult], model: str) -> None:
+    """Overwrites REPORT_FILE entirely — any hand-written analysis added to a
+    previous report (e.g. an "## Interpretation" section) is not preserved
+    automatically. Re-add it by hand after re-running if you want to keep it.
+    """
     n = len(results)
     n_correct = sum(1 for r in results if r.verdict == "CORRECT")
     total_tool_calls = sum(len(r.tool_calls) for r in results)
@@ -249,6 +285,13 @@ def write_report(results: list[QuestionResult], model: str) -> None:
         for tc in r.tool_calls:
             tool_usage[tc.name] = tool_usage.get(tc.name, 0) + 1
 
+    agent_prompt = sum(r.agent_prompt_tokens for r in results)
+    agent_completion = sum(r.agent_completion_tokens for r in results)
+    judge_prompt = sum(r.judge_prompt_tokens for r in results)
+    judge_completion = sum(r.judge_completion_tokens for r in results)
+    total_tokens = agent_prompt + agent_completion + judge_prompt + judge_completion
+    avg_tokens = total_tokens / n if n else 0.0
+
     lines = [
         "# CSOSA MCP Server — Gold Question Evaluation Report",
         "",
@@ -257,7 +300,24 @@ def write_report(results: list[QuestionResult], model: str) -> None:
         if n
         else "No questions evaluated.",
         f"Average tool calls per question: {avg_tool_calls:.1f}  |  "
-        f"Average rounds per question: {avg_rounds:.1f}",
+        f"Average rounds per question: {avg_rounds:.1f}  |  "
+        f"Average tokens per question: {avg_tokens:,.0f}",
+        "",
+        "## Token usage across all questions",
+        "",
+        "Counts come from the `usage` field each serving-endpoint response "
+        'returns; 0 for any endpoint that doesn\'t report it. "Agent" is '
+        'answering the question (all tool-calling rounds); "Judge" is the '
+        "separate LLM-as-judge grading call.",
+        "",
+        "| | Prompt tokens | Completion tokens | Total |",
+        "|---|---|---|---|",
+        f"| Agent | {agent_prompt:,} | {agent_completion:,} | "
+        f"{agent_prompt + agent_completion:,} |",
+        f"| Judge | {judge_prompt:,} | {judge_completion:,} | "
+        f"{judge_prompt + judge_completion:,} |",
+        f"| **Total** | **{agent_prompt + judge_prompt:,}** | "
+        f"**{agent_completion + judge_completion:,}** | **{total_tokens:,}** |",
         "",
         "## Tool usage across all questions",
         "",
@@ -283,6 +343,14 @@ def write_report(results: list[QuestionResult], model: str) -> None:
         lines.append(f"**Judge reason:** {r.reason}")
         lines.append("")
         lines.append(f"**Rounds:** {r.rounds}  |  **Tool calls:** {len(r.tool_calls)}")
+        lines.append("")
+        lines.append(
+            f"**Tokens:** agent {r.agent_prompt_tokens + r.agent_completion_tokens:,} "
+            f"(prompt {r.agent_prompt_tokens:,} / completion "
+            f"{r.agent_completion_tokens:,})  |  judge "
+            f"{r.judge_prompt_tokens + r.judge_completion_tokens:,}  |  "
+            f"**total {r.total_tokens:,}**"
+        )
         lines.append("")
         if r.tool_calls:
             lines.append("<details><summary>Tool call trace</summary>")
