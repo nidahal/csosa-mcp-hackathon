@@ -45,27 +45,22 @@ SOURCE_LINK_COLUMNS = {
 }
 
 
-def _render_tool_result(call: ToolCallRecord) -> None:
+def _chart_for_tool_call(call: ToolCallRecord, budget: float | None):
+    """Build a Plotly figure for a tool call's result, or None if it has no
+    chartable shape (a table/JSON-only result, or an error)."""
     result = call.result
-    if not isinstance(result, dict):
-        return
-    if error := result.get("error"):
-        st.error(f"`{call.name}` failed: {error}")
-        return
+    if not isinstance(result, dict) or result.get("error"):
+        return None
 
     if call.name == "csosa_spending_summary":
         group_by = result.get("group_by", "fiscal_year")
         results = result.get("results") or []
         if not results:
-            return
+            return None
         title = GROUP_BY_TITLES.get(group_by, "CSOSA spending summary")
-        fig = (
-            spending_time_series(results, title)
-            if group_by == "fiscal_year"
-            else ranked_bar(results, title)
-        )
-        st.plotly_chart(fig, use_container_width=True)
-        return
+        if group_by == "fiscal_year":
+            return spending_time_series(results, title, budget=budget)
+        return ranked_bar(results, title, budget=budget)
 
     if call.name in ("csosa_search_contract_awards", "csosa_search_subawards"):
         items = result.get("items") or []
@@ -84,15 +79,25 @@ def _render_tool_result(call: ToolCallRecord) -> None:
             chart_data = [
                 {"label": r.get(name_key), "amount": r[amount_key]} for r in ranked
             ]
-            st.plotly_chart(
-                ranked_bar(chart_data, "Top awards by amount"),
-                use_container_width=True,
-            )
-        if items:
-            st.dataframe(items, column_config=SOURCE_LINK_COLUMNS, hide_index=True)
+            return ranked_bar(chart_data, "Top awards by amount", budget=budget)
+
+    return None
+
+
+def _render_sources(call: ToolCallRecord) -> None:
+    """Render a tool call's underlying data: an error, a table, or raw JSON."""
+    result = call.result
+    if not isinstance(result, dict):
+        return
+    if error := result.get("error"):
+        st.error(f"`{call.name}` failed: {error}")
         return
 
-    if call.name == "csosa_list_idv_child_awards":
+    if call.name in (
+        "csosa_search_contract_awards",
+        "csosa_search_subawards",
+        "csosa_list_idv_child_awards",
+    ):
         items = result.get("items") or []
         if items:
             st.dataframe(items, column_config=SOURCE_LINK_COLUMNS, hide_index=True)
@@ -100,6 +105,12 @@ def _render_tool_result(call: ToolCallRecord) -> None:
 
     if call.name == "csosa_get_award_details":
         st.json(result)
+        return
+
+    if call.name == "csosa_spending_summary":
+        results = result.get("results") or []
+        if results:
+            st.dataframe(results, hide_index=True)
 
 
 def _sidebar_connection() -> tuple[str, str, str, str]:
@@ -122,6 +133,27 @@ def _sidebar_connection() -> tuple[str, str, str, str]:
     return host, token, mcp_url, model
 
 
+def _sidebar_budget() -> float | None:
+    with st.sidebar:
+        st.header("Guardrails")
+        budget_str = st.text_input(
+            "Budget threshold ($, optional)",
+            value="",
+            help=(
+                "USAspending.gov doesn't expose an agency's appropriated "
+                "budget, so this isn't live data — set your own ceiling and "
+                "any amount above it is highlighted red on the charts below."
+            ),
+        )
+        if not budget_str.strip():
+            return None
+        try:
+            return float(budget_str.replace(",", "").replace("$", ""))
+        except ValueError:
+            st.error("Budget threshold must be a number.")
+            return None
+
+
 def main() -> None:
     st.set_page_config(
         page_title="CSOSA Spending Assistant", page_icon="📊", layout="wide"
@@ -136,6 +168,7 @@ def main() -> None:
     )
 
     host, token, mcp_url, model = _sidebar_connection()
+    budget = _sidebar_budget()
 
     question = st.text_input(
         "Your question",
@@ -184,14 +217,24 @@ def main() -> None:
             st.write(line)
         status.update(label="Done", state="complete")
 
+    charts = [
+        fig
+        for call in run.tool_calls
+        if (fig := _chart_for_tool_call(call, budget)) is not None
+    ]
+    if charts:
+        st.markdown("### Spending overview")
+        for fig in charts:
+            st.plotly_chart(fig, use_container_width=True)
+
     st.markdown("### Answer")
     st.markdown(run.answer or "_No answer returned._")
 
     if run.tool_calls:
-        st.markdown("### Data behind this answer")
+        st.markdown("### Source data")
         for call in run.tool_calls:
             st.caption(f"`{call.name}`({call.arguments})")
-            _render_tool_result(call)
+            _render_sources(call)
 
 
 if __name__ == "__main__":
