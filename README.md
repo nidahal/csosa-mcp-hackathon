@@ -94,6 +94,9 @@ mcp-hackathon-template/
 ├── server.json                # MCP registry metadata
 ├── .env.example               # Copy to .env for local dev
 ├── .github/workflows/ci.yml   # Lint + test on push/PR
+├── DEMO.md                    # Demo video script
+├── agent/                     # agent/core.py: shared tool-calling loop; csosa_agent.py: CLI
+├── webapp/                    # Streamlit UI (chat, charts, budget guardrails)
 ├── src/
 │   └── example_server/        # ← rename to your service
 │       ├── app.py             # Thin entry point: builds FastMCP, picks transport
@@ -111,11 +114,12 @@ mcp-hackathon-template/
 │           ├── __init__.py    #   register_resources(mcp) aggregator
 │           └── example.py
 ├── tests/                     # Import + registration smoke tests
-├── eval/                      # Stub → build a Phoenix eval harness (see mcp-eval skill)
+├── eval/                      # Gold-question harness (run_evaluation.py) + report
 └── deploy/
     ├── README.md              # Which deployment kit to use
     ├── ibm/                   # watsonx Orchestrate: 3 kits (see below)
-    └── databricks/            # Databricks Apps kit
+    ├── databricks/            # Databricks Apps kit — the MCP server
+    └── databricks-webapp/     # Databricks Apps kit — the Streamlit UI
 ```
 
 ---
@@ -229,7 +233,7 @@ Both read the same server code; `app.py` automatically serves HTTP when the plat
 
 ## Evaluations
 
-Measuring how well an LLM can use your tools is the real test of server quality. This template intentionally does **not** ship an eval harness — see [eval/README.md](eval/README.md) for how to build one with the `mcp-eval` skill.
+Measuring how well an LLM can use your tools is the real test of server quality. This project ships a working gold-question harness — see [eval/README.md](eval/README.md) for how to run it (or [eval/eval_report.md](eval/eval_report.md) for the latest results) and for how to build your own with the `mcp-eval` skill if you're starting a fresh server from this template.
 
 ---
 

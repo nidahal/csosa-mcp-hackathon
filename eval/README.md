@@ -28,8 +28,7 @@ RelevanceToQuery) instead of this one's lighter LLM-judge.
 ## Building your own from scratch
 
 If you're starting a fresh server from this template (not the CSOSA one
-above), it ships without an eval harness — building one is still the single
-best way to know whether your MCP server actually works well.
+above), it ships without an eval harness.
 
 ## Why evaluate?
 
