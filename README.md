@@ -49,6 +49,27 @@ CSOSA tools) and this web UI, which is just another MCP client. The CLI agent
 and the eval harness are two more clients of the exact same `agent/core.py`
 loop, so none of them can drift from each other.
 
+### Try it yourself
+
+Open the web UI (link above) and fill in the sidebar:
+
+- **DATABRICKS_HOST:** `https://dbc-aae0ba16-8727.cloud.databricks.com`
+- **MCP_SERVER_URL:** `https://csosa-mcp-server-7474654188777746.aws.databricksapps.com/mcp`
+- **DATABRICKS_TOKEN:** run `databricks --profile <your-profile> auth token --host https://dbc-aae0ba16-8727.cloud.databricks.com --output json | python -c "import json,sys; print(json.load(sys.stdin)['access_token'])"` and paste the single line it prints (needs the Databricks CLI authenticated against this workspace; tokens expire in ~1 hour).
+
+Then try these, in order — each one exercises a different feature:
+
+1. **Fiscal-year trend + budget guardrail.** Ask `Show me CSOSA spending by fiscal year`, set **Budget threshold** to `50000000`. FY2010 (~$65.7M) should render as a red point on the line chart, with a dashed "Budget" line.
+2. **Ranked bar chart + guardrail.** Ask `Who are CSOSA's top 5 recipients by total spending?`, set the threshold to `20000000`. Expect 3 red bars / 2 blue, a legend, and a hover tooltip naming the recipient and amount.
+3. **Multi-turn memory.** Follow up in the *same* chat box with `What's the combined total of those five?` — it should answer directly from the previous turn's data, with no new "Discovered tools" status and no new chart.
+4. **Source links.** Ask `What are CSOSA's three largest security-related contract awards?` — a chart plus a table with clickable "View on USAspending.gov" links.
+5. **Award details.** Ask `Give me full contract details for CSOSA's largest fiscal year 2023 award` — no chart for this one, a raw JSON record under "Source data."
+6. **Sub-awards.** Ask `Which sub-awardee received the largest sub-award amount under CSOSA prime contracts?`
+7. **IDV chains.** Ask `Find CSOSA's largest award in fiscal year 2010, then show me the other orders placed under its parent IDV` — a multi-hop tool chain (search → details → IDV children).
+8. **Reset.** Click **Clear conversation** in the sidebar.
+
+Charts always render above the narrated answer, which renders above the raw source data — in that order, every time.
+
 ---
 
 ## What is an MCP server?
