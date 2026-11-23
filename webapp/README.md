@@ -1,10 +1,11 @@
 # CSOSA Spending Assistant (Streamlit UI)
 
-A small web front end for the CSOSA MCP agent: type a natural-language
-question, get back a narrated answer plus an auto-generated chart and the
-underlying source records (each linking to its USAspending.gov permalink).
-It retrieves, aggregates, and explains public contract-spending data — it
-never writes back to USAspending.gov or any external system.
+A small web front end for the CSOSA MCP agent: a multi-turn chat where you
+ask a natural-language question (and follow-ups — it remembers the
+conversation) and get back a narrated answer plus an auto-generated chart
+and the underlying source records (each linking to its USAspending.gov
+permalink). It retrieves, aggregates, and explains public contract-spending
+data — it never writes back to USAspending.gov or any external system.
 
 This reuses the same tool-calling loop as the CLI agent
 (`agent/csosa_agent.py`) — shared code lives in `agent/core.py` — so the two
@@ -23,7 +24,18 @@ uv run streamlit run webapp/app.py
 ```
 
 If any of those three env vars are unset, the sidebar has text fields for
-entering them at runtime instead.
+entering them at runtime instead — pre-filled with this deployment's known
+host and MCP server URL, so only a token is usually needed. When running as
+the deployed Databricks App, it first tries to auto-authenticate using the
+app's own injected service-principal credentials (see
+`deploy/databricks-webapp/README.md`'s "After it's deployed" section for the
+one-time grant that makes that actually succeed); until then, or if that
+exchange fails for any reason, it falls back to the manual token field
+exactly as before.
+
+Use **Clear conversation** in the sidebar to start a fresh conversation
+(each follow-up question otherwise keeps the full prior exchange in context,
+so token usage grows with conversation length).
 
 ## What renders a chart vs. a table
 
