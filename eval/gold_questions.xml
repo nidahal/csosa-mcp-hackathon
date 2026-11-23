@@ -39,4 +39,20 @@
       <question>Among all sub-award (subcontract) records reported under CSOSA prime contracts, which single sub-awardee received the largest sub-award amount? Give the sub-awardee's name exactly as reported.</question>
       <answer>BUSINESS OPERATIONAL CONCEPTS, LLC.</answer>
    </qa_pair>
+   <qa_pair>
+      <question>Among all CSOSA sub-award records, which single sub-awardee received the third-largest sub-award amount? Give the sub-awardee's name exactly as reported.</question>
+      <answer>ARCHIMA LLC</answer>
+   </qa_pair>
+   <qa_pair>
+      <question>Among CSOSA sub-award records, which prime recipient issued sub-awards for "Salesforce support" work to a sub-awardee located in North Bethesda, Maryland? Give the prime recipient's name exactly as reported.</question>
+      <answer>ACUMEN SOLUTIONS, INC.</answer>
+   </qa_pair>
+   <qa_pair>
+      <question>CSOSA's delivery order to Bradley Technologies Inc for security services (signed 2023-09-08) was placed under a parent IDV. Among the Department of Defense's orders placed under that same parent IDV, which one has the largest obligated amount? Give its award ID (PIID).</question>
+      <answer>FA480022F0003</answer>
+   </qa_pair>
+   <qa_pair>
+      <question>CSOSA's delivery order to Bradley Technologies Inc for security services (signed 2023-09-08) — what Product/Service Code (PSC) is associated with that award? Give the PSC code.</question>
+      <answer>R430</answer>
+   </qa_pair>
 </evaluation>

@@ -21,6 +21,34 @@ Every tool here is **read-only**: it retrieves, aggregates, and explains live US
 
 Both apps sit behind Databricks workspace SSO, so they're reachable by workspace members rather than the open internet — see [deploy/databricks/README.md](deploy/databricks/README.md) and [deploy/databricks-webapp/README.md](deploy/databricks-webapp/README.md) for how to deploy your own.
 
+### Architecture
+
+```mermaid
+flowchart LR
+    User(["User"])
+    Webapp["webapp/app.py\nStreamlit UI\n(Databricks App: csosa-spending-webapp)"]
+    CLI["agent/csosa_agent.py\nCLI agent"]
+    Core["agent/core.py\nshared tool-calling loop"]
+    LLM["Databricks model serving\n(databricks-claude-sonnet-4-5)"]
+    MCP["src/example_server/\nMCP server\n(Databricks App: csosa-mcp-server)"]
+    USA[("USAspending.gov\npublic API")]
+    Eval["eval/run_evaluation.py\ngold-question harness"]
+
+    User --> Webapp
+    User -. or .-> CLI
+    Webapp --> Core
+    CLI --> Core
+    Core <--> LLM
+    Core -->|"MCP tool calls"| MCP
+    MCP -->|"read-only"| USA
+    Eval -.->|"grades answers from"| Core
+```
+
+Two independently deployed Databricks Apps: the MCP server (5 read-only
+CSOSA tools) and this web UI, which is just another MCP client. The CLI agent
+and the eval harness are two more clients of the exact same `agent/core.py`
+loop, so none of them can drift from each other.
+
 ---
 
 ## What is an MCP server?

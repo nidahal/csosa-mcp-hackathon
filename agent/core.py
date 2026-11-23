@@ -48,6 +48,10 @@ class AgentRun:
     answer: str
     tool_calls: list[ToolCallRecord] = field(default_factory=list)
     discovered_tools: list[str] = field(default_factory=list)
+    # The full OpenAI-style message list, including this turn's exchange.
+    # Pass it back in as `history` on the next call for a multi-turn
+    # conversation; ignore it for one-shot use (the CLI agent does).
+    messages: list[dict[str, Any]] = field(default_factory=list)
 
 
 def _mcp_tool_to_openai_schema(tool: Any) -> dict[str, Any]:
@@ -76,10 +80,16 @@ async def run_agent(
     mcp_url: str,
     model: str = DEFAULT_MODEL,
     max_tool_rounds: int = MAX_TOOL_ROUNDS,
+    history: list[dict[str, Any]] | None = None,
     on_tools_discovered: OnToolsDiscovered | None = None,
     on_tool_call: OnToolCall | None = None,
 ) -> AgentRun:
-    """Run one question through the MCP tool-calling loop end to end."""
+    """Run one question through the MCP tool-calling loop end to end.
+
+    `history` is the `messages` list from a previous AgentRun, for a
+    multi-turn conversation — omit it (the default) for a fresh one-shot
+    question, which is what the CLI agent and the eval harness do.
+    """
     transport = StreamableHttpTransport(
         mcp_url, headers={"Authorization": f"Bearer {token}"}
     )
@@ -105,10 +115,10 @@ async def run_agent(
         if on_tools_discovered:
             on_tools_discovered(tool_names)
 
-        messages: list[dict[str, Any]] = [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": question},
-        ]
+        messages: list[dict[str, Any]] = (
+            list(history) if history else [{"role": "system", "content": SYSTEM_PROMPT}]
+        )
+        messages.append({"role": "user", "content": question})
 
         for round_num in range(1, max_tool_rounds + 1):
             response = await llm_client.post(
@@ -124,10 +134,12 @@ async def run_agent(
             calls = choice.get("tool_calls") or []
 
             if not calls:
+                messages.append(choice)
                 return AgentRun(
                     answer=(choice.get("content") or "").strip(),
                     tool_calls=tool_calls,
                     discovered_tools=tool_names,
+                    messages=messages,
                 )
 
             messages.append(choice)
@@ -157,4 +169,5 @@ async def run_agent(
             answer="Stopped after reaching max_tool_rounds without a final answer.",
             tool_calls=tool_calls,
             discovered_tools=tool_names,
+            messages=messages,
         )

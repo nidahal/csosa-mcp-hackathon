@@ -56,6 +56,7 @@ class _FakeLlmClient:
     def __init__(self, responses: list[dict]):
         self._responses = responses
         self.post_count = 0
+        self.sent_payloads: list[dict] = []
 
     async def __aenter__(self) -> _FakeLlmClient:
         return self
@@ -64,6 +65,9 @@ class _FakeLlmClient:
         return None
 
     async def post(self, url: str, json: dict) -> httpx.Response:
+        # Snapshot "messages" — core.py keeps mutating the same list object
+        # (appending the reply, then tool results) after this call returns.
+        self.sent_payloads.append({**json, "messages": list(json["messages"])})
         choice = self._responses[self.post_count]
         self.post_count += 1
         return httpx.Response(
@@ -185,6 +189,64 @@ async def test_run_agent_answers_directly_with_no_tool_calls(
 
     assert run.answer == "CSOSA is a federal agency."
     assert run.tool_calls == []
+
+
+@pytest.mark.asyncio
+async def test_run_agent_returns_messages_for_continuation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    mcp_client = _FakeMcpClient(tools=[], tool_results={})
+    llm_client = _FakeLlmClient(
+        responses=[{"content": "CSOSA is a federal agency.", "tool_calls": []}]
+    )
+    _patch_clients(monkeypatch, mcp_client, llm_client)
+
+    run = await core.run_agent(
+        "What is CSOSA?",
+        host="https://example.cloud.databricks.com",
+        token="fake-token",
+        mcp_url="https://example.databricksapps.com/mcp",
+    )
+
+    assert run.messages == [
+        {"role": "system", "content": core.SYSTEM_PROMPT},
+        {"role": "user", "content": "What is CSOSA?"},
+        {"content": "CSOSA is a federal agency.", "tool_calls": []},
+    ]
+
+
+@pytest.mark.asyncio
+async def test_run_agent_with_history_skips_system_prompt_and_continues(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    prior_history = [
+        {"role": "system", "content": core.SYSTEM_PROMPT},
+        {"role": "user", "content": "What is CSOSA?"},
+        {"content": "CSOSA is a federal agency.", "tool_calls": []},
+    ]
+    mcp_client = _FakeMcpClient(tools=[], tool_results={})
+    llm_client = _FakeLlmClient(
+        responses=[{"content": "It was established in 1997.", "tool_calls": []}]
+    )
+    _patch_clients(monkeypatch, mcp_client, llm_client)
+
+    run = await core.run_agent(
+        "When was it established?",
+        host="https://example.cloud.databricks.com",
+        token="fake-token",
+        mcp_url="https://example.databricksapps.com/mcp",
+        history=prior_history,
+    )
+
+    assert run.answer == "It was established in 1997."
+    # The follow-up question was appended to the supplied history rather than
+    # starting a fresh conversation with a second system prompt.
+    sent_messages = llm_client.sent_payloads[0]["messages"]
+    assert sent_messages == [
+        *prior_history,
+        {"role": "user", "content": "When was it established?"},
+    ]
+    assert sum(1 for m in sent_messages if m.get("role") == "system") == 1
 
 
 @pytest.mark.asyncio
